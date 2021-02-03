@@ -15,6 +15,7 @@
  */
 package com.leshazlewood.scms.cli;
 
+import ch.qos.logback.classic.Level;
 import com.leshazlewood.scms.core.DefaultProcessor;
 import com.leshazlewood.scms.core.Processor;
 import com.leshazlewood.scms.core.Version;
@@ -25,9 +26,14 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 /** @since 0.1 */
 public class Main {
+
+  private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
   private static final String DEFAULT_CONFIG_FILE_NAME = DefaultProcessor.DEFAULT_CONFIG_FILE_NAME;
 
@@ -45,6 +51,11 @@ public class Main {
   private static final Option HELP = new Option("help", "help", false, "show this help message.");
   private static final Option VERSION =
       new Option("version", "version", false, "display the SCMS and Java versions");
+
+  static {
+    SLF4JBridgeHandler.removeHandlersForRootLogger();
+    SLF4JBridgeHandler.install();
+  }
 
   public static void main(String[] args) throws Exception {
 
@@ -75,6 +86,9 @@ public class Main {
       }
       if (line.hasOption(DEBUG.getOpt())) {
         debug = true;
+        ch.qos.logback.classic.Logger log =
+            (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        log.setLevel(Level.DEBUG);
       }
       if (line.hasOption(CONFIG.getOpt())) {
         String configFilePath = line.getOptionValue(CONFIG.getOpt());

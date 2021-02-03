@@ -336,6 +336,11 @@
                 <executions>
                     <execution>
                         <goals>
+                          <goal>addSources</goal>
+                          <goal>addStubSources</goal>
+                          <goal>compile</goal>
+                          <goal>removeStubs</goal>
+
                             <goal>addTestSources</goal>
                           <goal>generateTestStubs</goal>
                             <goal>compileTests</goal>
