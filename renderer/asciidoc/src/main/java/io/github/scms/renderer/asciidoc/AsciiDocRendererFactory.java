@@ -13,36 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.scms.api;
+package io.github.scms.renderer.asciidoc;
 
-import java.io.Writer;
-import java.util.HashMap;
-import java.util.Map;
+import io.github.scms.api.FileRenderer;
+import io.github.scms.api.FileRendererFactory;
+import java.io.File;
+import org.asciidoctor.Asciidoctor;
 
-public class DefaultRenderRequest implements RenderRequest {
-
-  private final Map<String, Object> model = new HashMap<>();
-  private final Resource resource;
-  private final Writer writer;
-
-  public DefaultRenderRequest(Map<String, Object> model, Resource resource, Writer writer) {
-    this.model.putAll(model);
-    this.resource = resource;
-    this.writer = writer;
+public class AsciiDocRendererFactory implements FileRendererFactory {
+  @Override
+  public FileRendererFactory withSourceDir(File sourceDir) {
+    return this;
   }
 
   @Override
-  public Map<String, Object> getModel() {
-    return this.model;
+  public FileRendererFactory withTemplateDir(File templateDir) {
+    return this;
   }
 
   @Override
-  public Resource getResource() {
-    return this.resource;
-  }
+  public FileRenderer create() {
+    Asciidoctor asciidoctor = Asciidoctor.Factory.create();
 
-  @Override
-  public Writer getWriter() {
-    return this.writer;
+    return new AsciiDoctorRenderer(asciidoctor);
   }
 }
