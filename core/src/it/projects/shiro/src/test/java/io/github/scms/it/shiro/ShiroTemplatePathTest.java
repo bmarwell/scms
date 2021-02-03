@@ -59,7 +59,7 @@ public class ShiroTemplatePathTest {
   @Test
   public void testNestedTemplatePath() {
     // given
-    DefaultProcessor processor = new com.leshazlewood.scms.core.DefaultProcessor();
+    DefaultProcessor processor = new DefaultProcessor();
     processor.setSourceDir(this.sourceDir);
     processor.setDestDir(this.destDir);
     processor.init();

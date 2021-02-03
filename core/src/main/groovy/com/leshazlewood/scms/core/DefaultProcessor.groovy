@@ -1,5 +1,7 @@
 package com.leshazlewood.scms.core
 
+import io.github.scms.api.DefaultRenderRequest
+import io.github.scms.api.DefaultResource
 import io.github.scms.api.FileRenderer
 import io.github.scms.api.FileRendererFactory
 import io.github.scms.api.RenderRequest

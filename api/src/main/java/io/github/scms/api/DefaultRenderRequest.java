@@ -13,10 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.leshazlewood.scms.core;
+package io.github.scms.api;
 
-import io.github.scms.api.RenderRequest;
-import io.github.scms.api.Resource;
 import java.io.Writer;
 import java.util.Map;
 
