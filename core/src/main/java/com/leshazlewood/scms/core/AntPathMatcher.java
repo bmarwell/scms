@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Les Hazlewood, scms contributors
+ * Copyright 2013-2021 Les Hazlewood, scms contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -376,18 +376,20 @@ public class AntPathMatcher implements PatternMatcher {
    * <p>For example:
    *
    * <ul>
-   *   <li>'<code>/docs/cvs/commit.html</code>' and '<code>/docs/cvs/commit.html</code> -> ''
-   *   <li>'<code>/docs/*</code>' and '<code>/docs/cvs/commit</code> -> '<code>cvs/commit</code>'
-   *   <li>'<code>/docs/cvs/*.html</code>' and '<code>/docs/cvs/commit.html</code> -> '<code>
+   *   <li>'<code>/docs/cvs/commit.html</code>' and '<code>/docs/cvs/commit.html</code> -&gt; ''
+   *   <li>'<code>/docs/*</code>' and '<code>/docs/cvs/commit</code> -&gt; '<code>cvs/commit</code>'
+   *   <li>'<code>/docs/cvs/*.html</code>' and '<code>/docs/cvs/commit.html</code> -&gt; '<code>
    *       commit.html</code>'
-   *   <li>'<code>/docs/**</code>' and '<code>/docs/cvs/commit</code> -> '<code>cvs/commit</code>'
-   *   <li>'<code>/docs/**\/*.html</code>' and '<code>/docs/cvs/commit.html</code> -> '<code>
+   *   <li>'<code>/docs/**</code>' and '<code>/docs/cvs/commit</code> -&gt; '<code>cvs/commit</code>
+   *       '
+   *   <li>'<code>/docs/**\/*.html</code>' and '<code>/docs/cvs/commit.html</code> -&gt; '<code>
    *       cvs/commit.html</code>'
-   *   <li>'<code>/*.html</code>' and '<code>/docs/cvs/commit.html</code> -> '<code>
+   *   <li>'<code>/*.html</code>' and '<code>/docs/cvs/commit.html</code> -&gt; '<code>
    *       docs/cvs/commit.html</code>'
-   *   <li>'<code>*.html</code>' and '<code>/docs/cvs/commit.html</code> -> '<code>
+   *   <li>'<code>*.html</code>' and '<code>/docs/cvs/commit.html</code> -&gt; '<code>
    *       /docs/cvs/commit.html</code>'
-   *   <li>'<code>*</code>' and '<code>/docs/cvs/commit.html</code> -> '<code>/docs/cvs/commit.html
+   *   <li>'<code>*</code>' and '<code>/docs/cvs/commit.html</code> -&gt; '<code>
+   *       /docs/cvs/commit.html
    *       </code>'
    * </ul>
    *
