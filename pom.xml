@@ -393,7 +393,7 @@
                         <includes>
                             <include>src/main/groovy/**/*.groovy</include>
                             <include>src/test/groovy/**/*.groovy</include>
-                            <include>src/it/projects/**/*.groovy</include>
+                            <include>src/it/projects/*/src/main/groovy/**/*.groovy</include>
                         </includes>
 
                         <importOrder />
@@ -521,6 +521,7 @@
                             </environmentVariables>
                             <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
                             <projectsDirectory>src/it/projects</projectsDirectory>
+                          <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
                             <pomIncludes>
                                 <pomInclude>*/pom.xml</pomInclude>
                             </pomIncludes>
