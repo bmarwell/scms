@@ -123,6 +123,10 @@ public class Main {
 
       if (configFile == null) {
         configFile = new File(sourceDir, DEFAULT_CONFIG_FILE_NAME);
+        if (!configFile.exists() || !configFile.isFile()) {
+          // try old < 0.2 file name:
+          configFile = new File(sourceDir, "config.scms.groovy");
+        }
       }
 
       assertConfigNotDirectory(configFile);
