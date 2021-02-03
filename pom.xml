@@ -94,7 +94,7 @@
         <groovy.version>3.0.7</groovy.version>
 
       <!-- Test Dependencies: -->
-      <easymock.version>3.4</easymock.version>
+      <easymock.version>3.6</easymock.version>
       <dependency.junit.jupiter.version>5.7.0</dependency.junit.jupiter.version>
       <dependency.hamcrest.version>2.2</dependency.hamcrest.version>
       <logback.version>1.2.3</logback.version>
