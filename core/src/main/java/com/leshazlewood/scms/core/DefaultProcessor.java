@@ -1,12 +1,23 @@
+/*
+ * Copyright 2021 Les Hazlewood, scms contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.leshazlewood.scms.core;
 
 import groovy.util.ConfigObject;
 import groovy.util.ConfigSlurper;
 import io.github.scms.api.*;
-import org.codehaus.groovy.runtime.DefaultGroovyMethods;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -16,6 +27,8 @@ import java.nio.file.LinkOption;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @SuppressWarnings({"ChangeToOperator", "GrMethodMayBeStatic"})
 public class DefaultProcessor implements Processor {
@@ -26,10 +39,7 @@ public class DefaultProcessor implements Processor {
 
   private PatternMatcher patternMatcher = new AntPathMatcher();
 
-  private Renderer velocityRenderer;
-  private Renderer pegdownRenderer;
   private Set<Renderer> renderers = new HashSet<>();
-  private Map<String, Renderer> renderersByExtension;
 
   private File sourceDir;
   private File destDir;
@@ -71,22 +81,21 @@ public class DefaultProcessor implements Processor {
     ensureDirectory(destDir);
 
     if (sourceDir.getAbsolutePath().equals(destDir.getAbsolutePath())) {
-      throw new IllegalArgumentException("Source directory and destination directory cannot be the same.");
+      throw new IllegalArgumentException(
+          "Source directory and destination directory cannot be the same.");
     }
-
 
     File templateDir = new File(this.sourceDir, "templates");
 
-    ServiceLoader<FileRendererFactory> serviceLoader = ServiceLoader.load(FileRendererFactory.class);
+    ServiceLoader<FileRendererFactory> serviceLoader =
+        ServiceLoader.load(FileRendererFactory.class);
     Iterator<FileRendererFactory> rendererIterator = serviceLoader.iterator();
     while (rendererIterator.hasNext()) {
       FileRendererFactory fileRendererFactory = rendererIterator.next();
-      FileRenderer fileRenderer = fileRendererFactory.withSourceDir(sourceDir).withTemplateDir(templateDir).create();
+      FileRenderer fileRenderer =
+          fileRendererFactory.withSourceDir(sourceDir).withTemplateDir(templateDir).create();
       renderers.add(fileRenderer);
     }
-
-
-    renderersByExtension = asRendererMap(renderers);
 
     if (configFile == null) {
       configFile = new File(sourceDir, DEFAULT_CONFIG_FILE_NAME);
@@ -94,9 +103,9 @@ public class DefaultProcessor implements Processor {
 
     if (configFile.exists()) {
       if (configFile.isDirectory()) {
-        throw new IllegalArgumentException("Expected configuration file " + configFile + " is a directory, not a file.");
+        throw new IllegalArgumentException(
+            "Expected configuration file " + configFile + " is a directory, not a file.");
       }
-
 
       ConfigSlurper slurper;
 
@@ -106,32 +115,19 @@ public class DefaultProcessor implements Processor {
         slurper = new ConfigSlurper();
       }
 
-
       try {
         URL scriptLocation = configFile.toURI().toURL();
         ConfigObject cfgobj = slurper.parse(scriptLocation);
-        config = ((Map) (cfgobj.get("scms")));
+        config = ((Map<String, Object>) (cfgobj.get("scms")));
       } catch (MalformedURLException malformedURLException) {
         throw new IllegalArgumentException(
-            "configfile not a valid url: [" + configFile.getAbsolutePath() + "].", malformedURLException);
+            "configfile not a valid url: [" + configFile.getAbsolutePath() + "].",
+            malformedURLException);
       }
 
     } else {
       config = new ConcurrentHashMap<>();
     }
-  }
-
-  private static Map<String, Renderer> asRendererMap(Collection<Renderer> c) {
-
-    Map<String, Renderer> m = new LinkedHashMap<String, Renderer>();
-    for (Renderer r : c) {
-      if (r instanceof FileRenderer) {
-        m.put(((FileRenderer) r).getInputFileExtension(), r);
-      }
-    }
-
-
-    return m;
   }
 
   @Override
@@ -155,7 +151,8 @@ public class DefaultProcessor implements Processor {
   private static void ensureFile(File f) {
     if (f.exists()) {
       if (f.isDirectory()) {
-        throw new IllegalStateException("File " + f + " was expected to be a file, not a directory.");
+        throw new IllegalStateException(
+            "File " + f + " was expected to be a file, not a directory.");
       }
       return;
     }
@@ -172,7 +169,8 @@ public class DefaultProcessor implements Processor {
     String dirAbsPath = parent.getAbsolutePath();
     String fileAbsPath = child.getAbsolutePath();
     if (!fileAbsPath.startsWith(dirAbsPath)) {
-      throw new IllegalArgumentException("The specified file is not a child or grandchild of the 'parent' argument.");
+      throw new IllegalArgumentException(
+          "The specified file is not a child or grandchild of the 'parent' argument.");
     }
     String relPath = fileAbsPath.substring(dirAbsPath.length());
     if (relPath.startsWith(File.separator)) {
@@ -211,22 +209,22 @@ public class DefaultProcessor implements Processor {
 
     String absPath = f.getAbsolutePath();
 
-        /*if (absPath.startsWith(destDir.getAbsolutePath()) ||
-                absPath.startsWith(templatesDir.getAbsolutePath()) ||
-                f.equals(configFile)) {
-            return false;
-        }*/
+    /*if (absPath.startsWith(destDir.getAbsolutePath()) ||
+            absPath.startsWith(templatesDir.getAbsolutePath()) ||
+            f.equals(configFile)) {
+        return false;
+    }*/
 
-    //only forcefully exclude the destDir (we require this so we avoid infinite recursion).
-    //We don't however forcefully exclude the scms config and/or templatesDir in the produced
-    //site in case the user wants to allow site viewers to see this information, e.g.
-    //an open source community site might want to show their config and templates to help others.
+    // only forcefully exclude the destDir (we require this so we avoid infinite recursion).
+    // We don't however forcefully exclude the scms config and/or templatesDir in the produced
+    // site in case the user wants to allow site viewers to see this information, e.g.
+    // an open source community site might want to show their config and templates to help others.
 
     if (absPath.startsWith(destDir.getAbsolutePath())) {
       return false;
     }
 
-    //now check excluded patterns:
+    // now check excluded patterns:
     String relPath = getRelativePath(sourceDir, f);
 
     if (config.get("excludes") instanceof Collection) {
@@ -267,7 +265,8 @@ public class DefaultProcessor implements Processor {
         try {
           renderFile(f);
         } catch (IOException ioException) {
-          throw new UncheckedIOException("Unable to render file " + f + ": " + ioException.getMessage(), ioException);
+          throw new UncheckedIOException(
+              "Unable to render file " + f + ": " + ioException.getMessage(), ioException);
         }
       }
     }
@@ -289,10 +288,9 @@ public class DefaultProcessor implements Processor {
 
     String relDirPath = getRelativeDirectoryPath(relPath);
     if ("".equals(relDirPath)) {
-      //still need to reference it with a separator char in the file:
+      // still need to reference it with a separator char in the file:
       relDirPath = ".";
     }
-
 
     model.put("root", relDirPath);
 
@@ -303,8 +301,7 @@ public class DefaultProcessor implements Processor {
       patterns = ((Map<String, Object>) (config.get("patterns")));
     }
 
-
-    String action = "render";//default unless overridden
+    String action = "render"; // default unless overridden
 
     for (Map.Entry<String, Object> patternEntry : patterns.entrySet()) {
 
@@ -312,21 +309,21 @@ public class DefaultProcessor implements Processor {
 
       if (patternMatcher.matches(pattern, relPath)) {
 
-        assert patternEntry.getValue() instanceof Map : "Entry for pattern \'" + pattern + "\' must be a map.";
+        assert patternEntry.getValue() instanceof Map
+            : "Entry for pattern \'" + pattern + "\' must be a map.";
         Map patternConfig = (Map) patternEntry.getValue();
         config.putAll(patternConfig);
 
-        //pattern-specific model
+        // pattern-specific model
         if (patternConfig.get("model") instanceof Map) {
           model.putAll((Map<? extends String, Object>) patternConfig.get("model"));
         }
-
 
         if (patternConfig.containsKey("render")) {
           action = (String) patternConfig.get("render");
         }
 
-        break;//stop pattern iteration - first match always wins
+        break; // stop pattern iteration - first match always wins
       }
     }
 
@@ -342,11 +339,11 @@ public class DefaultProcessor implements Processor {
       return;
     }
 
-    //otherwise we need to render:
+    // otherwise we need to render:
     Reader content = null;
-    String destRelPath = relPath;//assume same unless it is itself a template
+    String destRelPath = relPath; // assume same unless it is itself a template
 
-    Renderer renderer = getRenderer(config, destRelPath);
+    Renderer renderer = getRenderer(destRelPath);
 
     while (renderer != null) {
 
@@ -357,31 +354,31 @@ public class DefaultProcessor implements Processor {
 
       destRelPath = destRelPath.substring(0, destRelPath.length() - (extension.length() + 1));
 
-      String destExtension = (renderer instanceof FileRenderer) ? ((FileRenderer) renderer).getOutputFileExtension() : extension;
+      String destExtension =
+          (renderer instanceof FileRenderer)
+              ? ((FileRenderer) renderer).getOutputFileExtension()
+              : extension;
 
-      if (DefaultGroovyMethods.asBoolean(config.get("outputFileExtension"))) {
+      if (config.get("outputFileExtension") != null) {
         destExtension = (String) config.get("outputFileExtension");
       }
 
-
-      Renderer nextRenderer = getRenderer(config, destRelPath);
+      Renderer nextRenderer = getRenderer(destRelPath);
 
       // if this is the last renderer set the extension, otherwise, skip it
       if (nextRenderer == null && !destRelPath.endsWith("." + destExtension)) {
         destRelPath += "." + destExtension;
       }
 
-
       content = render(renderer, model, destRelPath, content);
       renderer = nextRenderer;
     }
 
-
-    if (DefaultGroovyMethods.asBoolean(config.get("template"))) {//a template will be used to render the contents
+    if (config.get("template") != null) { // a template will be used to render the contents
       String template = (String) config.get("template");
       File templateFile = new File(this.sourceDir, template);
       renderer = getRenderer(template);
-      if (DefaultGroovyMethods.asBoolean(renderer)) {
+      if (renderer != null) {
         if (content == null) {
           content = Files.newBufferedReader(f.toPath(), StandardCharsets.UTF_8);
         }
@@ -397,17 +394,16 @@ public class DefaultProcessor implements Processor {
     ensureFile(destFile);
 
     if (content != null) {
-      //write out the rendered content to the destination file:
+      // write out the rendered content to the destination file:
       BufferedWriter writer = new BufferedWriter(new FileWriter(destFile));
       copy(content, writer);
       content.close();
       writer.close();
     } else {
-      //just copy the file over:
+      // just copy the file over:
       copy(f, destFile);
     }
   }
-
 
   private String getExtension(String path) {
     char ch = '.';
@@ -419,28 +415,18 @@ public class DefaultProcessor implements Processor {
   }
 
   public Renderer getRenderer(String path) {
-    String extension = getExtension(path);
-    return renderersByExtension.get(extension);
-  }
-
-  public Renderer getRenderer(Map config, String path) {
-    if ("velocity".equals(config.get("renderer"))) {
-      return velocityRenderer;
-    } else if ("pegdown".equals(config.get("renderer"))) {
-      return pegdownRenderer;
-    }
-
-    for (Renderer r : renderers) {
-      if (r instanceof FileRenderer && ((FileRenderer) r).supports(path)) {
-        return r;
+    for (Renderer renderer : renderers) {
+      if (renderer instanceof FileRenderer && ((FileRenderer) renderer).supports(path)) {
+        LOG.debug("Choosing renderer [{}] for path [{}].", renderer, path);
+        return renderer;
       }
     }
-
 
     return null;
   }
 
-  public Reader render(Renderer renderer, Map<String, Object> model, String path, Reader reader) throws IOException {
+  public Reader render(Renderer renderer, Map<String, Object> model, String path, Reader reader)
+      throws IOException {
     Resource resource = new DefaultResource(path, reader);
     StringWriter resultWriter = new StringWriter(8192);
     RenderRequest request = new DefaultRenderRequest(model, resource, resultWriter);
@@ -450,9 +436,7 @@ public class DefaultProcessor implements Processor {
     return new StringReader(resultWriter.toString());
   }
 
-  /**
-   * Reads all characters from a Reader and writes them to a Writer.
-   */
+  /** Reads all characters from a Reader and writes them to a Writer. */
   private static long copy(Reader r, Writer w) throws IOException {
     long nread = 0L;
     char[] buf = new char[4096];
@@ -465,31 +449,11 @@ public class DefaultProcessor implements Processor {
   }
 
   private static void copy(File src, File dest) throws IOException {
-    Files.copy(src.toPath(), dest.toPath(), LinkOption.NOFOLLOW_LINKS, StandardCopyOption.REPLACE_EXISTING);
-  }
-
-  public PatternMatcher getPatternMatcher() {
-    return patternMatcher;
-  }
-
-  public void setPatternMatcher(PatternMatcher patternMatcher) {
-    this.patternMatcher = patternMatcher;
-  }
-
-  public Set<Renderer> getRenderers() {
-    return renderers;
-  }
-
-  public void setRenderers(Set<Renderer> renderers) {
-    this.renderers = renderers;
-  }
-
-  public Map<String, Renderer> getRenderersByExtension() {
-    return renderersByExtension;
-  }
-
-  public void setRenderersByExtension(Map<String, Renderer> renderersByExtension) {
-    this.renderersByExtension = renderersByExtension;
+    Files.copy(
+        src.toPath(),
+        dest.toPath(),
+        LinkOption.NOFOLLOW_LINKS,
+        StandardCopyOption.REPLACE_EXISTING);
   }
 
   public File getSourceDir() {
@@ -519,5 +483,4 @@ public class DefaultProcessor implements Processor {
   public void setConfig(Map config) {
     this.config = config;
   }
-
 }

@@ -44,6 +44,14 @@
       <artifactId>scms-renderer-markdown</artifactId>
       <scope>runtime</scope>
     </dependency>
+
+    <!-- for config slurper -->
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy</artifactId>
+      <scope>compile</scope>
+    </dependency>
+
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
