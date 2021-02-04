@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Scanner;
 import org.pegdown.PegDownProcessor;
 
-@SuppressWarnings({"Duplicates", "unchecked"})
 public class PegdownRenderer implements FileRenderer {
 
   private static final String METADATA_KV_PAIR_DELIMITER = ":";
@@ -89,7 +88,7 @@ public class PegdownRenderer implements FileRenderer {
     int charCount = 0; // counter for determining where to cut the metadata from non-metadata
 
     String key = null;
-    List<String> value = new ArrayList<String>();
+    List<String> value = new ArrayList<>();
 
     while (scanner.hasNextLine()) {
       String line = scanner.nextLine();
