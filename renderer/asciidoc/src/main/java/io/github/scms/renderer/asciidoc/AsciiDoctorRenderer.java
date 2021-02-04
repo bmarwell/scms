@@ -23,10 +23,7 @@ import io.github.scms.api.Resource;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
-import org.asciidoctor.Asciidoctor;
-import org.asciidoctor.Options;
-import org.asciidoctor.OptionsBuilder;
-import org.asciidoctor.SafeMode;
+import org.asciidoctor.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,8 +33,10 @@ public class AsciiDoctorRenderer implements FileRenderer {
 
   private final Asciidoctor asciidoctor;
 
+  private final AttributesBuilder attributes =
+      AttributesBuilder.attributes().attribute("showtitle");
   private final Options options =
-      OptionsBuilder.options().headerFooter(false).safe(SafeMode.SAFE).get();
+      OptionsBuilder.options().attributes(attributes).safe(SafeMode.SAFE).get();
 
   public AsciiDoctorRenderer(Asciidoctor asciidoctor) {
     this.asciidoctor = requireNonNull(asciidoctor);
