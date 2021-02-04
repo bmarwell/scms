@@ -15,6 +15,8 @@
  */
 package com.leshazlewood.scms.core;
 
+import static java.util.stream.Collectors.joining;
+
 import groovy.util.ConfigObject;
 import groovy.util.ConfigSlurper;
 import io.github.scms.api.*;
@@ -383,7 +385,7 @@ public class DefaultProcessor implements Processor {
           content = Files.newBufferedReader(f.toPath(), StandardCharsets.UTF_8);
         }
 
-        String contentString = new BufferedReader(content).readLine();
+        String contentString = new BufferedReader(content).lines().collect(joining("\n"));
         model.put("content", contentString);
         content = Files.newBufferedReader(templateFile.toPath(), StandardCharsets.UTF_8);
         content = render(renderer, model, destRelPath, content);
@@ -432,8 +434,10 @@ public class DefaultProcessor implements Processor {
     RenderRequest request = new DefaultRenderRequest(model, resource, resultWriter);
     renderer.render(request);
     reader.close();
+    resultWriter.flush();
     resultWriter.close();
-    return new StringReader(resultWriter.toString());
+
+    return new StringReader(resultWriter.getBuffer().toString());
   }
 
   /** Reads all characters from a Reader and writes them to a Writer. */
