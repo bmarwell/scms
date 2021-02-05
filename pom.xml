@@ -72,6 +72,7 @@
 
   <modules>
     <module>api</module>
+    <module>utils</module>
     <module>renderer/velocity</module>
     <module>renderer/markdown</module>
     <module>renderer/asciidoc</module>
@@ -157,6 +158,11 @@
       <dependency>
         <groupId>io.github.scms</groupId>
         <artifactId>scms-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.scms.utils</groupId>
+        <artifactId>scms-utils</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
