@@ -20,13 +20,12 @@ import static java.util.stream.Collectors.joining;
 import groovy.util.ConfigObject;
 import groovy.util.ConfigSlurper;
 import io.github.scms.api.*;
+import io.github.scms.utils.FileUtils;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -39,15 +38,15 @@ public class DefaultProcessor implements Processor {
 
   public static final String DEFAULT_CONFIG_FILE_NAME = ".scms.groovy";
 
-  private PatternMatcher patternMatcher = new AntPathMatcher();
+  private final PatternMatcher patternMatcher = new AntPathMatcher();
 
-  private Set<Renderer> renderers = new HashSet<>();
+  private final Set<Renderer> renderers = new HashSet<>();
 
   private File sourceDir;
   private File destDir;
   private File configFile;
   private String envName;
-  private Map<String, Object> config;
+  private Map<String, Object> config = new ConcurrentHashMap<>();
 
   @Override
   public void setSourceDir(File sourceDir) {
@@ -75,12 +74,12 @@ public class DefaultProcessor implements Processor {
     if (sourceDir == null) {
       sourceDir = new File(System.getProperty("user.dir"));
     }
-    ensureDirectory(sourceDir);
+    FileUtils.ensureDirectory(sourceDir);
 
     if (destDir == null) {
       destDir = new File(sourceDir, "output");
     }
-    ensureDirectory(destDir);
+    FileUtils.ensureDirectory(destDir);
 
     if (sourceDir.getAbsolutePath().equals(destDir.getAbsolutePath())) {
       throw new IllegalArgumentException(
@@ -120,86 +119,18 @@ public class DefaultProcessor implements Processor {
       try {
         URL scriptLocation = configFile.toURI().toURL();
         ConfigObject cfgobj = slurper.parse(scriptLocation);
-        config = ((Map<String, Object>) (cfgobj.get("scms")));
+        config.putAll((Map<String, Object>) (cfgobj.get("scms")));
       } catch (MalformedURLException malformedURLException) {
         throw new IllegalArgumentException(
             "configfile not a valid url: [" + configFile.getAbsolutePath() + "].",
             malformedURLException);
       }
-
-    } else {
-      config = new ConcurrentHashMap<>();
     }
   }
 
   @Override
   public void run() {
     recurse(sourceDir);
-  }
-
-  private void ensureDirectory(File f) {
-    if (f.exists()) {
-      if (!f.isDirectory()) {
-        throw new IllegalArgumentException("Specified file " + f + " is not a directory.");
-      }
-      return;
-    }
-
-    if (!f.mkdirs()) {
-      throw new UncheckedIOException(new IOException("Unable to create directory " + f));
-    }
-  }
-
-  private static void ensureFile(File f) {
-    if (f.exists()) {
-      if (f.isDirectory()) {
-        throw new IllegalStateException(
-            "File " + f + " was expected to be a file, not a directory.");
-      }
-      return;
-    }
-
-    f.getParentFile().mkdirs();
-    try {
-      f.createNewFile();
-    } catch (IOException javaIoIOException) {
-      throw new UncheckedIOException(javaIoIOException);
-    }
-  }
-
-  private static String getRelativePath(File parent, File child) {
-    String dirAbsPath = parent.getAbsolutePath();
-    String fileAbsPath = child.getAbsolutePath();
-    if (!fileAbsPath.startsWith(dirAbsPath)) {
-      throw new IllegalArgumentException(
-          "The specified file is not a child or grandchild of the 'parent' argument.");
-    }
-    String relPath = fileAbsPath.substring(dirAbsPath.length());
-    if (relPath.startsWith(File.separator)) {
-      relPath = relPath.substring(1);
-    }
-    return relPath;
-  }
-
-  private static String getRelativeDirectoryPath(String path) {
-    if (path == null) {
-      throw new IllegalArgumentException("path argument cannot be null.");
-    }
-
-    int lastSeparatorIndex = path.lastIndexOf(File.separatorChar);
-    if (lastSeparatorIndex <= 0) {
-      return ".";
-    }
-    String[] segments = path.split(File.separator);
-
-    StringBuilder sb = new StringBuilder("");
-    for (int i = 0; i < segments.length - 1; i++) {
-      if (sb.length() > 0) {
-        sb.append(File.separatorChar);
-      }
-      sb.append("..");
-    }
-    return sb.toString();
   }
 
   @SuppressWarnings("unchecked")
@@ -227,7 +158,7 @@ public class DefaultProcessor implements Processor {
     }
 
     // now check excluded patterns:
-    String relPath = getRelativePath(sourceDir, f);
+    String relPath = FileUtils.getRelativePath(sourceDir, f);
 
     if (config.get("excludes") instanceof Collection) {
       for (Object pattern : (Collection) config.get("excludes")) {
@@ -259,9 +190,9 @@ public class DefaultProcessor implements Processor {
       }
 
       if (f.isDirectory()) {
-        String relPath = getRelativePath(sourceDir, f);
+        String relPath = FileUtils.getRelativePath(sourceDir, f);
         File copiedDir = new File(destDir, relPath);
-        ensureDirectory(copiedDir);
+        FileUtils.ensureDirectory(copiedDir);
         recurse(f);
       } else {
         try {
@@ -274,13 +205,13 @@ public class DefaultProcessor implements Processor {
     }
   }
 
-  private void renderFile(File f) throws IOException {
+  protected void renderFile(File fileToRender) throws IOException {
 
-    String relPath = getRelativePath(sourceDir, f);
+    String relPath = FileUtils.getRelativePath(sourceDir, fileToRender);
 
     Map<String, Object> config = new ConcurrentHashMap<>(this.config);
 
-    Map<String, Object> model = new LinkedHashMap<String, Object>();
+    Map<String, Object> model = new LinkedHashMap<>();
 
     if (config.containsKey("model") && config.get("model") instanceof Map) {
       model = (Map<String, Object>) config.get("model");
@@ -288,7 +219,8 @@ public class DefaultProcessor implements Processor {
       config.put("model", model);
     }
 
-    String relDirPath = getRelativeDirectoryPath(relPath);
+    // path from relPath relative to sourceDir (how to get to the root directory).
+    String relDirPath = FileUtils.relativize(relPath);
     if ("".equals(relDirPath)) {
       // still need to reference it with a separator char in the file:
       relDirPath = ".";
@@ -312,7 +244,7 @@ public class DefaultProcessor implements Processor {
       if (patternMatcher.matches(pattern, relPath)) {
 
         assert patternEntry.getValue() instanceof Map
-            : "Entry for pattern \'" + pattern + "\' must be a map.";
+            : "Entry for pattern '" + pattern + "' must be a map.";
         Map patternConfig = (Map) patternEntry.getValue();
         config.putAll(patternConfig);
 
@@ -336,8 +268,8 @@ public class DefaultProcessor implements Processor {
 
     } else if (action.equals("copy")) {
       File destFile = new File(destDir, relPath);
-      ensureFile(destFile);
-      copy(f, destFile);
+      FileUtils.ensureFile(destFile);
+      FileUtils.copy(fileToRender, destFile);
       return;
     }
 
@@ -349,9 +281,9 @@ public class DefaultProcessor implements Processor {
 
     while (renderer != null) {
 
-      String extension = getExtension(destRelPath);
+      String extension = FileUtils.getExtension(destRelPath);
       if (content == null) {
-        content = Files.newBufferedReader(f.toPath(), StandardCharsets.UTF_8);
+        content = Files.newBufferedReader(fileToRender.toPath(), StandardCharsets.UTF_8);
       }
 
       destRelPath = destRelPath.substring(0, destRelPath.length() - (extension.length() + 1));
@@ -382,7 +314,7 @@ public class DefaultProcessor implements Processor {
       renderer = getRenderer(template);
       if (renderer != null) {
         if (content == null) {
-          content = Files.newBufferedReader(f.toPath(), StandardCharsets.UTF_8);
+          content = Files.newBufferedReader(fileToRender.toPath(), StandardCharsets.UTF_8);
         }
 
         String contentString = new BufferedReader(content).lines().collect(joining("\n"));
@@ -393,27 +325,18 @@ public class DefaultProcessor implements Processor {
     }
 
     File destFile = new File(destDir, destRelPath);
-    ensureFile(destFile);
+    FileUtils.ensureFile(destFile);
 
     if (content != null) {
       // write out the rendered content to the destination file:
       BufferedWriter writer = new BufferedWriter(new FileWriter(destFile));
-      copy(content, writer);
+      FileUtils.copy(content, writer);
       content.close();
       writer.close();
     } else {
       // just copy the file over:
-      copy(f, destFile);
+      FileUtils.copy(fileToRender, destFile);
     }
-  }
-
-  private String getExtension(String path) {
-    char ch = '.';
-    int i = path.lastIndexOf(ch);
-    if (i > 0) {
-      return path.substring(i + 1);
-    }
-    return null;
   }
 
   public Renderer getRenderer(String path) {
@@ -438,26 +361,6 @@ public class DefaultProcessor implements Processor {
     resultWriter.close();
 
     return new StringReader(resultWriter.getBuffer().toString());
-  }
-
-  /** Reads all characters from a Reader and writes them to a Writer. */
-  private static long copy(Reader r, Writer w) throws IOException {
-    long nread = 0L;
-    char[] buf = new char[4096];
-    int n;
-    while ((n = r.read(buf)) > 0) {
-      w.write(buf, 0, n);
-      nread += n;
-    }
-    return nread;
-  }
-
-  private static void copy(File src, File dest) throws IOException {
-    Files.copy(
-        src.toPath(),
-        dest.toPath(),
-        LinkOption.NOFOLLOW_LINKS,
-        StandardCopyOption.REPLACE_EXISTING);
   }
 
   public File getSourceDir() {

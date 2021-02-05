@@ -35,6 +35,10 @@
       <artifactId>scms-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.github.scms.utils</groupId>
+      <artifactId>scms-utils</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.github.scms.renderer</groupId>
       <artifactId>scms-renderer-velocity</artifactId>
       <scope>runtime</scope>
