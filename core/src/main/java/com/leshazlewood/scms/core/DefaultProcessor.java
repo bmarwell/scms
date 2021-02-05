@@ -209,6 +209,7 @@ public class DefaultProcessor implements Processor {
   }
 
   protected void doRenderFile(File fileToRender) throws IOException {
+    LOG.info("Rendering file [{}].", fileToRender.getPath());
 
     String relPath = FileUtils.getRelativePath(sourceDir, fileToRender);
 
