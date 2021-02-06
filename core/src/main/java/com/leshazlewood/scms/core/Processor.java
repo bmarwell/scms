@@ -17,7 +17,7 @@ package com.leshazlewood.scms.core;
 
 import java.io.File;
 
-public interface Processor {
+public interface Processor extends AutoCloseable {
 
   void setSourceDir(File sourceDir);
 

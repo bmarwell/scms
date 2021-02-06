@@ -19,6 +19,7 @@ import ch.qos.logback.classic.Level;
 import com.leshazlewood.scms.core.DefaultProcessor;
 import com.leshazlewood.scms.core.Processor;
 import com.leshazlewood.scms.core.Version;
+import io.github.scms.utils.ThreadArgParser;
 import java.io.File;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -46,6 +47,8 @@ public class Main {
               + DEFAULT_CONFIG_FILE_NAME);
   private static final Option DEBUG =
       new Option("d", "debug", false, "show additional error (stack trace) information.");
+  private static final Option THREADING =
+      new Option("T", "threads", true, "number of threads (defaults to 0).");
   private static final Option ENVIRONMENT =
       new Option("e", "env", true, "the configuration environment to enable.");
   private static final Option HELP = new Option("help", "help", false, "show this help message.");
@@ -66,6 +69,7 @@ public class Main {
         .addOption(CONFIG)
         .addOption(ENVIRONMENT)
         .addOption(DEBUG)
+        .addOption(THREADING)
         .addOption(HELP)
         .addOption(VERSION);
 
@@ -74,21 +78,22 @@ public class Main {
     File configFile = null;
     File destDir = null;
     String envName = null;
+    final int numThreads;
 
     try {
       CommandLine line = parser.parse(options, args);
 
-      if (line.hasOption(VERSION.getOpt())) {
-        printVersionAndExit();
-      }
-      if (line.hasOption(HELP.getOpt())) {
-        printHelpAndExit(options, null, debug, 0);
-      }
       if (line.hasOption(DEBUG.getOpt())) {
         debug = true;
         ch.qos.logback.classic.Logger log =
             (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         log.setLevel(Level.DEBUG);
+      }
+      if (line.hasOption(VERSION.getOpt())) {
+        printVersionAndExit();
+      }
+      if (line.hasOption(HELP.getOpt())) {
+        printHelpAndExit(options, null, debug, 0);
       }
       if (line.hasOption(CONFIG.getOpt())) {
         String configFilePath = line.getOptionValue(CONFIG.getOpt());
@@ -98,6 +103,14 @@ public class Main {
         envName = line.getOptionValue(ENVIRONMENT.getOpt());
         envName = envName != null ? envName.trim() : envName;
         envName = "".equals(envName) ? null : envName;
+      }
+      if (line.hasOption(THREADING.getOpt())) {
+        String threadArg = line.getOptionValue(THREADING.getOpt());
+        numThreads = ThreadArgParser.parse(threadArg);
+      } else {
+        // change the default if desired:
+        // numThreads = ThreadArgParser.getCores();
+        numThreads = 1;
       }
 
       String[] remainingArgs = line.getArgs();
@@ -141,18 +154,17 @@ public class Main {
       }
       */
 
-      Processor processor = new DefaultProcessor();
-      processor.setSourceDir(sourceDir);
-      processor.setDestDir(destDir);
-      if (configFile != null) {
+      try (Processor processor = ProcessorFactory.makeProcessor(numThreads)) {
+        processor.setSourceDir(sourceDir);
+        processor.setDestDir(destDir);
         processor.setConfigFile(configFile);
-      }
-      if (envName != null) {
-        processor.setEnvironment(envName);
-      }
+        if (envName != null) {
+          processor.setEnvironment(envName);
+        }
 
-      processor.init();
-      processor.run();
+        processor.init();
+        processor.run();
+      }
 
       /*
       SiteExporter siteExporter = new SiteExporter();
