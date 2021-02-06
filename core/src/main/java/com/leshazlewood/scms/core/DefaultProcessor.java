@@ -27,7 +27,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -175,8 +175,7 @@ public class DefaultProcessor implements Processor {
     return true;
   }
 
-  @SuppressWarnings("unchecked")
-  private void recurse(File dir) {
+  protected void recurse(File dir) {
 
     File[] files = dir.listFiles();
     if (files == null) {
@@ -195,17 +194,21 @@ public class DefaultProcessor implements Processor {
         FileUtils.ensureDirectory(copiedDir);
         recurse(f);
       } else {
-        try {
-          renderFile(f);
-        } catch (IOException ioException) {
-          throw new UncheckedIOException(
-              "Unable to render file " + f + ": " + ioException.getMessage(), ioException);
-        }
+        renderFile(f);
       }
     }
   }
 
-  protected void renderFile(File fileToRender) throws IOException {
+  protected void renderFile(File f) {
+    try {
+      doRenderFile(f);
+    } catch (IOException ioException) {
+      throw new UncheckedIOException(
+          "Unable to render file " + f + ": " + ioException.getMessage(), ioException);
+    }
+  }
+
+  protected void doRenderFile(File fileToRender) throws IOException {
 
     String relPath = FileUtils.getRelativePath(sourceDir, fileToRender);
 
@@ -389,5 +392,10 @@ public class DefaultProcessor implements Processor {
 
   public void setConfig(Map config) {
     this.config = config;
+  }
+
+  @Override
+  public void close() throws Exception {
+    // noop
   }
 }

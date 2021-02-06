@@ -46,7 +46,7 @@ class DefaultProcessorTest {
     def file = new File(sourceDir, "file.adoc").absoluteFile
 
     // when
-    defaultProcessor.renderFile file
+    defaultProcessor.doRenderFile file
   }
 
 }
