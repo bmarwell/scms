@@ -72,4 +72,29 @@
     </dependency>
   </dependencies>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+        <version>1.4</version>
+        <executions>
+          <execution>
+            <id>create</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>create-metadata</goal>
+            </goals>
+            <configuration>
+              <attach>true</attach>
+              <!--make it available for jar/war classpath resource -->
+              <addOutputDirectoryToResources>true</addOutputDirectoryToResources>
+              <outputName>io/github/scms/core/build.properties</outputName>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
 </project>
