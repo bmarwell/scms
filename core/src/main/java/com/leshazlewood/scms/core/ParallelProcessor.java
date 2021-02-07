@@ -94,7 +94,17 @@ public class ParallelProcessor extends DefaultProcessor {
   @Override
   public void close() throws Exception {
     super.close();
-    this.executorService.shutdown();
+    try {
+      this.executorService.shutdown();
+      boolean terminated = this.executorService.awaitTermination(1L, TimeUnit.SECONDS);
+      if (!terminated) {
+        throw new InterruptedException("not terminated in time");
+      }
+    } catch (InterruptedException interruptedException) {
+      LOG.error("Executorservice not terminated.", interruptedException);
+      Thread.currentThread().interrupt();
+      executorService.shutdownNow();
+    }
   }
 
   @Override
