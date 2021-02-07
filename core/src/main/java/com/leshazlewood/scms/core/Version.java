@@ -16,44 +16,54 @@
 package com.leshazlewood.scms.core;
 
 import java.io.IOException;
-import java.net.URL;
-import java.util.jar.Attributes;
-import java.util.jar.Manifest;
+import java.io.InputStream;
+import java.util.Optional;
+import java.util.Properties;
 
 /** @since 0.1 */
-public class Version {
+public enum Version {
+  INSTANCE;
 
-  private static final String VERSION = lookupVersion();
+  private static final String BUILD_PROPERTIES = "/io/github/scms/core/build.properties";
+  private final String version;
+  private final String revision;
 
-  public static String getVersion() {
-    return VERSION;
+  public static String version() {
+    return INSTANCE.getVersion();
   }
 
-  private static String lookupVersion() {
-    Class clazz = Version.class;
-    String className = clazz.getSimpleName() + ".class";
-    String classPath = clazz.getResource(className).toString();
-    if (!classPath.startsWith("jar")) {
-      // Class not from JAR
-      return "NOT-FROM-JAR";
-    }
-    String manifestPath =
-        classPath.substring(0, classPath.lastIndexOf("!") + 1) + "/META-INF/MANIFEST.MF";
-    Manifest manifest = getManifest(manifestPath);
-    Attributes attr = manifest.getMainAttributes();
-    String value = attr.getValue("Implementation-Version");
-    if (value == null) {
+  public static String revision() {
+    return INSTANCE.getRevision();
+  }
+
+  Version() {
+    try (InputStream resourceAsStream = Version.class.getResourceAsStream(BUILD_PROPERTIES)) {
+      Properties props = new Properties();
+      props.load(resourceAsStream);
+
+      this.version =
+          Optional.ofNullable(props.getProperty("version"))
+              .orElseThrow(
+                  () ->
+                      new IllegalStateException(
+                          "Version property missing from file [" + BUILD_PROPERTIES + "]."));
+      this.revision =
+          Optional.ofNullable(props.getProperty("revision"))
+              .orElseThrow(
+                  () ->
+                      new IllegalStateException(
+                          "Version property missing from file [" + BUILD_PROPERTIES + "]."));
+    } catch (IOException javaIoIOException) {
       throw new IllegalStateException(
-          "Unable to obtain 'Implementation-Version' property from manifest.");
+          "Invalid build, file " + BUILD_PROPERTIES + " missing.", javaIoIOException);
     }
-    return value;
   }
 
-  private static Manifest getManifest(String path) {
-    try {
-      return new Manifest(new URL(path).openStream());
-    } catch (IOException e) {
-      throw new RuntimeException("Unable to obtain version from manifest path [" + path + "]");
-    }
+  public String getVersion() {
+    return this.version;
+  }
+
+  public String getRevision() {
+    return this.revision;
   }
 }

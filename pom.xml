@@ -314,6 +314,12 @@
             <artifactId>spotless-maven-plugin</artifactId>
             <version>${plugin.spotless.version}</version>
           </plugin>
+
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>buildnumber-maven-plugin</artifactId>
+            <version>1.4</version>
+          </plugin>
         </plugins>
       </pluginManagement>
         <plugins>

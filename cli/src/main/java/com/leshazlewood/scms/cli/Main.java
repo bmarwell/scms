@@ -21,6 +21,7 @@ import com.leshazlewood.scms.core.Processor;
 import com.leshazlewood.scms.core.Version;
 import io.github.scms.utils.ThreadArgParser;
 import java.io.File;
+import java.util.Locale;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -51,9 +52,9 @@ public class Main {
       new Option("T", "threads", true, "number of threads (defaults to 0).");
   private static final Option ENVIRONMENT =
       new Option("e", "env", true, "the configuration environment to enable.");
-  private static final Option HELP = new Option("help", "help", false, "show this help message.");
+  private static final Option HELP = new Option("h", "help", false, "show this help message.");
   private static final Option VERSION =
-      new Option("version", "version", false, "display the SCMS and Java versions");
+      new Option("v", "version", false, "display the SCMS and Java versions");
 
   static {
     SLF4JBridgeHandler.removeHandlersForRootLogger();
@@ -194,12 +195,14 @@ public class Main {
   }
 
   private static void printVersionAndExit() {
-    System.out.println(
-        "SCMS Version: "
-            + Version.getVersion()
-            + "\n"
-            + "JVM Version : "
-            + System.getProperty("java.version"));
+    String versionInfo =
+        String.format(
+            Locale.ENGLISH,
+            "SCMS Version: %s, git revision %s.\nJVM Version : %s",
+            Version.version(),
+            Version.revision(),
+            System.getProperty("java.version"));
+    System.out.println(versionInfo);
     System.exit(0);
   }
 
