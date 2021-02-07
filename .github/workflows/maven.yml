@@ -32,3 +32,19 @@ jobs:
 
     - name: Build with Maven
       run: mvn --batch-mode --errors --file pom.xml clean verify '-Prun-its' '-Pdocs' '-Dinvoker.streamLogs=true'
+
+    - name: Deploy snapshot
+      if: ${{ matrix.java == '11' }} && ${{ matrix.os == 'ubuntu-latest' }} && ${{ github.ref == 'refs/heads/master' }}
+      run: mvn deploy --batch-mode -Pdocs -Pdeploy-github -DskipTests
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2.2.1
+      with:
+        # Artifact name
+        name: scms-${{ matrix.os }}-java${{ matrix.java }}
+        # A file, directory or wildcard pattern that describes what to upload
+        path: dist/target/scms*.zip
+        # The desired behavior if no files are found using the provided path.
+        if-no-files-found: error
