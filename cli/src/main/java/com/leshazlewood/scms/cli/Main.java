@@ -17,11 +17,13 @@ package com.leshazlewood.scms.cli;
 
 import ch.qos.logback.classic.Level;
 import com.leshazlewood.scms.core.DefaultProcessor;
+import com.leshazlewood.scms.core.ParallelProcessor;
 import com.leshazlewood.scms.core.Processor;
 import com.leshazlewood.scms.core.Version;
 import io.github.scms.utils.ThreadArgParser;
 import java.io.File;
 import java.util.Locale;
+import java.util.Map;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -177,6 +179,8 @@ public class Main {
 
         processor.init();
         processor.run();
+
+        printErrors(processor, quiet);
       }
 
       /*
@@ -195,6 +199,28 @@ public class Main {
     } catch (Exception e) {
       printHelpAndExit(options, e, debug, -1);
     }
+  }
+
+  private static void printErrors(Processor processor, boolean quiet) {
+    if (!(processor instanceof ParallelProcessor)) {
+      return;
+    }
+
+    ParallelProcessor parallelProcessor = (ParallelProcessor) processor;
+    Map<String, Throwable> renderingErrors = parallelProcessor.getRenderingErrors();
+    if (renderingErrors.isEmpty()) {
+      return;
+    }
+
+    if (!quiet) {
+      for (Map.Entry<String, Throwable> renderingErrorEntry : renderingErrors.entrySet()) {
+        String fileOrDir = renderingErrorEntry.getKey();
+        Throwable error = renderingErrorEntry.getValue();
+        LOG.error("Rendering error in [{}]: [{}].", fileOrDir, error.getMessage(), error);
+      }
+    }
+
+    System.exit(1);
   }
 
   private static void assertConfigNotDirectory(File f) {
