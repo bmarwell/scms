@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -31,12 +32,15 @@ public class ParallelProcessor extends DefaultProcessor {
 
   private List<CompletableFuture<?>> threads;
 
+  private Map<String, Throwable> renderingErrors;
+
   private ExecutorService executorService;
 
   @Override
   public void init() throws UncheckedIOException {
     super.init();
     this.threads = new ArrayList<>();
+    this.renderingErrors = new ConcurrentHashMap<>();
     checkExecutorService();
   }
 
@@ -71,7 +75,13 @@ public class ParallelProcessor extends DefaultProcessor {
   protected void recurse(File dir) {
     Runnable recurseThread = () -> super.recurse(dir);
     CompletableFuture<Void> recurseFuture =
-        CompletableFuture.runAsync(recurseThread, executorService);
+        CompletableFuture.runAsync(recurseThread, executorService)
+            .whenComplete(
+                (Void result, Throwable error) -> {
+                  if (error != null) {
+                    this.renderingErrors.put(dir.getPath(), error);
+                  }
+                });
     threads.add(recurseFuture);
   }
 
@@ -79,7 +89,13 @@ public class ParallelProcessor extends DefaultProcessor {
   protected void renderFile(File file) {
     Runnable renderThread = () -> super.renderFile(file);
     CompletableFuture<Void> renderFuture =
-        CompletableFuture.runAsync(renderThread, executorService);
+        CompletableFuture.runAsync(renderThread, executorService)
+            .whenComplete(
+                (Void result, Throwable error) -> {
+                  if (error != null) {
+                    this.renderingErrors.put(file.getPath(), error);
+                  }
+                });
     threads.add(renderFuture);
   }
 
@@ -89,6 +105,10 @@ public class ParallelProcessor extends DefaultProcessor {
 
   public void setExecutorService(ExecutorService executorService) {
     this.executorService = executorService;
+  }
+
+  public Map<String, Throwable> getRenderingErrors() {
+    return renderingErrors;
   }
 
   @Override
