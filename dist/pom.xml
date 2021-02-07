@@ -29,6 +29,10 @@
     <name>SCMS :: Distribution Zip</name>
     <packaging>pom</packaging>
 
+  <properties>
+    <invoker.skip>true</invoker.skip>
+  </properties>
+
   <dependencies>
         <dependency>
             <groupId>com.leshazlewood.scms</groupId>
