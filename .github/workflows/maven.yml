@@ -34,7 +34,7 @@ jobs:
       run: mvn --batch-mode --errors --file pom.xml clean verify '-Prun-its' '-Pdocs' '-Dinvoker.streamLogs=true'
 
     - name: Deploy snapshot
-      if: ${{ matrix.java == '11' }} && ${{ matrix.os == 'ubuntu-latest' }} && ${{ github.ref == 'refs/heads/master' }}
+      if: ${{ matrix.java == '11' && matrix.os == 'ubuntu-latest' && github.ref == 'refs/heads/master' }}
       run: mvn deploy --batch-mode -Pdocs -Pdeploy-github -DskipTests
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
