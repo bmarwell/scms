@@ -47,6 +47,8 @@ public class Main {
               + DEFAULT_CONFIG_FILE_NAME);
   private static final Option DEBUG =
       new Option("d", "debug", false, "show additional error (stack trace) information.");
+  private static final Option QUIET =
+      new Option("q", "quiet", false, "show only warnings, no informational messages.");
   private static final Option THREADING =
       new Option("T", "threads", true, "number of threads (defaults to 0).");
   private static final Option ENVIRONMENT =
@@ -69,11 +71,13 @@ public class Main {
         .addOption(CONFIG)
         .addOption(ENVIRONMENT)
         .addOption(DEBUG)
+        .addOption(QUIET)
         .addOption(THREADING)
         .addOption(HELP)
         .addOption(VERSION);
 
     boolean debug = false;
+    boolean quiet = false;
     File sourceDir = toFile(System.getProperty("user.dir"));
     File configFile = null;
     File destDir = null;
@@ -85,6 +89,7 @@ public class Main {
 
       if (line.hasOption(DEBUG.getOpt())) {
         debug = true;
+        quiet = false;
         ch.qos.logback.classic.Logger log =
             (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         log.setLevel(Level.DEBUG);
@@ -94,6 +99,13 @@ public class Main {
       }
       if (line.hasOption(HELP.getOpt())) {
         printHelpAndExit(options, null, debug, 0);
+      }
+      if (line.hasOption(QUIET.getOpt())) {
+        debug = false;
+        quiet = true;
+        ch.qos.logback.classic.Logger log =
+            (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        log.setLevel(Level.WARN);
       }
       if (line.hasOption(CONFIG.getOpt())) {
         String configFilePath = line.getOptionValue(CONFIG.getOpt());
