@@ -14,6 +14,7 @@
   <groupId>io.github.scms.utils</groupId>
   <artifactId>scms-utils</artifactId>
   <version>0.4.0-SNAPSHOT</version>
+  <name>SCMS :: utils</name>
 
   <dependencies>
     <dependency>

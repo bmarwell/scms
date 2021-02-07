@@ -54,10 +54,6 @@
       <artifactId>scms-renderer-asciidoc</artifactId>
       <scope>runtime</scope>
     </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
 
     <!-- for config slurper -->
     <dependency>
