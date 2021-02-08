@@ -6,7 +6,7 @@
   <parent>
     <artifactId>scms-root</artifactId>
     <groupId>com.leshazlewood.scms</groupId>
-    <version>0.4.0-SNAPSHOT</version>
+    <version>0.4.0</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
