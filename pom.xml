@@ -384,16 +384,15 @@
                     <!-- license header update -->
                     <ratchetFrom>origin/master</ratchetFrom>
 
-                  <formats>
-                    <format>
-                      <includes>
-                        <include>**/pom.xml</include>
-                        <include>src/**/*.xml</include>
-                      </includes>
+              <formats>
+                <format>
+                  <!-- xml -->
+                  <includes>
+                    <include>pom.xml</include>
+                    <include>src/**/*.xml</include>
+                  </includes>
 
                       <prettier>
-                        <!-- Specify at most one of the following 3 configs: either 'prettierVersion' (2.0.5 is default),
-                        'devDependencies' or 'devDependencyProperties'  -->
                         <devDependencyProperties>
                           <property>
                             <name>prettier</name>
@@ -405,7 +404,6 @@
                             <value>0.13.0</value>
                           </property>
                         </devDependencyProperties>
-                        <!-- Specify config file and/or inline config, the inline always trumps file -->
                         <!--suppress UnresolvedMavenProperty -->
                         <configFile>${maven.multiModuleProjectDirectory}/build/prettierrc.xml.yaml</configFile>
                       </prettier>
