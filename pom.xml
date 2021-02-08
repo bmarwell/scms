@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <!--
   ~ Copyright 2013 Les Hazlewood
   ~
@@ -14,7 +14,11 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+>
 
     <modelVersion>4.0.0</modelVersion>
 
@@ -380,6 +384,41 @@
                     <!-- license header update -->
                     <ratchetFrom>origin/master</ratchetFrom>
 
+                  <formats>
+                    <format>
+                      <includes>
+                        <include>**/pom.xml</include>
+                        <include>src/**/*.xml</include>
+                      </includes>
+
+                      <prettier>
+                        <!-- Specify at most one of the following 3 configs: either 'prettierVersion' (2.0.5 is default),
+                        'devDependencies' or 'devDependencyProperties'  -->
+                        <devDependencyProperties>
+                          <property>
+                            <name>prettier</name>
+                            <value>2.0.5</value>
+                          </property>
+                          <property>
+                            <!-- this could not be written in the simpler to write 'devDependencies' element. -->
+                            <name>@prettier/plugin-xml</name>
+                            <value>0.13.0</value>
+                          </property>
+                        </devDependencyProperties>
+                        <!-- Specify config file and/or inline config, the inline always trumps file -->
+                        <!--suppress UnresolvedMavenProperty -->
+                        <configFile>${maven.multiModuleProjectDirectory}/build/prettierrc.xml.yaml</configFile>
+                      </prettier>
+                      <trimTrailingWhitespace />
+
+                      <endWithNewline />
+
+                      <indent>
+                        <spaces>true</spaces>
+                        <spacesPerTab>2</spacesPerTab>
+                      </indent>
+                    </format>
+                  </formats>
                     <java>
                         <includes>
                             <include>src/main/java/**/*.java</include>
@@ -427,7 +466,7 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <phase>validate</phase>
+                        <phase>verify</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>

@@ -1,0 +1,8 @@
+parser: xml
+printWidth: 140
+tabWidth: 2
+useTabs: false
+endOfLine: lf
+# xml specific, see https://github.com/prettier/plugin-xml#configuration
+xmlSelfClosingSpace: true
+xmlWhitespaceSensitivity: strict
