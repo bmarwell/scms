@@ -110,6 +110,7 @@
       <plugin.gmavenplus.version>1.12.1</plugin.gmavenplus.version>
       <plugin.surefire.version>2.22.2</plugin.surefire.version>
       <plugin.failsafe.version>2.22.2</plugin.failsafe.version>
+    <dependency.flexmark.version>0.62.2</dependency.flexmark.version>
   </properties>
 
   <!-- forced dependencies -->
@@ -204,9 +205,9 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-          <groupId>org.pegdown</groupId>
-          <artifactId>pegdown</artifactId>
-          <version>${pegdown.version}</version>
+        <groupId>com.vladsch.flexmark</groupId>
+        <artifactId>flexmark-all</artifactId>
+        <version>${dependency.flexmark.version}</version>
       </dependency>
       <dependency>
           <!-- used for the command line executable: -->

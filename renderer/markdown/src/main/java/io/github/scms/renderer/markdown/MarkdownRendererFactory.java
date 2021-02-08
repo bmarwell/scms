@@ -15,11 +15,15 @@
  */
 package io.github.scms.renderer.markdown;
 
+import com.vladsch.flexmark.ext.gfm.strikethrough.StrikethroughExtension;
+import com.vladsch.flexmark.ext.tables.TablesExtension;
+import com.vladsch.flexmark.html.HtmlRenderer;
+import com.vladsch.flexmark.parser.Parser;
+import com.vladsch.flexmark.util.data.MutableDataSet;
 import io.github.scms.api.FileRenderer;
 import io.github.scms.api.FileRendererFactory;
 import java.io.File;
-import org.pegdown.Extensions;
-import org.pegdown.PegDownProcessor;
+import java.util.Arrays;
 
 public class MarkdownRendererFactory implements FileRendererFactory {
 
@@ -35,8 +39,16 @@ public class MarkdownRendererFactory implements FileRendererFactory {
 
   @Override
   public FileRenderer create() {
-    PegDownProcessor pegDownProcessor = new PegDownProcessor(Extensions.ALL);
+    MutableDataSet options = new MutableDataSet();
+    options.set(HtmlRenderer.GENERATE_HEADER_ID, true);
+    options.set(HtmlRenderer.RENDER_HEADER_ID, true);
+    options.set(
+        Parser.EXTENSIONS,
+        Arrays.asList(TablesExtension.create(), StrikethroughExtension.create()));
 
-    return new PegdownRenderer(pegDownProcessor);
+    Parser parser = Parser.builder(options).build();
+    HtmlRenderer renderer = HtmlRenderer.builder(options).build();
+
+    return new FlexmarkRenderer(parser, renderer);
   }
 }
