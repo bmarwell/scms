@@ -1,0 +1,359 @@
+commit 4a1df7461234f91de0ef4cb50e9672d5a6eb364e
+Author: Benjamin Marwell <bmarwell@apache.org>
+Date:   Mon Feb 8 19:01:09 2021 +0100
+
+    spotless apply xml
+
+diff --git a/pom.xml b/pom.xml
+index 7c2ccce..de51eec 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -110,6 +110,7 @@
+       <plugin.gmavenplus.version>1.12.1</plugin.gmavenplus.version>
+       <plugin.surefire.version>2.22.2</plugin.surefire.version>
+       <plugin.failsafe.version>2.22.2</plugin.failsafe.version>
++    <dependency.flexmark.version>0.62.2</dependency.flexmark.version>
+   </properties>
+ 
+   <!-- forced dependencies -->
+@@ -204,9 +205,9 @@
+         <scope>test</scope>
+       </dependency>
+       <dependency>
+-          <groupId>org.pegdown</groupId>
+-          <artifactId>pegdown</artifactId>
+-          <version>${pegdown.version}</version>
++        <groupId>com.vladsch.flexmark</groupId>
++        <artifactId>flexmark-all</artifactId>
++        <version>${dependency.flexmark.version}</version>
+       </dependency>
+       <dependency>
+           <!-- used for the command line executable: -->
+diff --git a/renderer/markdown/pom.xml b/renderer/markdown/pom.xml
+index 99fb8f5..6a9ed03 100644
+--- a/renderer/markdown/pom.xml
++++ b/renderer/markdown/pom.xml
+@@ -23,9 +23,10 @@
+     </dependency>
+ 
+     <dependency>
+-      <groupId>org.pegdown</groupId>
+-      <artifactId>pegdown</artifactId>
++      <groupId>com.vladsch.flexmark</groupId>
++      <artifactId>flexmark-all</artifactId>
+     </dependency>
++
+   </dependencies>
+ 
+ </project>
+diff --git a/renderer/markdown/src/main/java/io/github/scms/renderer/markdown/FlexmarkRenderer.java b/renderer/markdown/src/main/java/io/github/scms/renderer/markdown/FlexmarkRenderer.java
+new file mode 100644
+index 0000000..948c056
+--- /dev/null
++++ b/renderer/markdown/src/main/java/io/github/scms/renderer/markdown/FlexmarkRenderer.java
+@@ -0,0 +1,46 @@
++package io.github.scms.renderer.markdown;
++
++import com.vladsch.flexmark.html.HtmlRenderer;
++import com.vladsch.flexmark.parser.Parser;
++import com.vladsch.flexmark.util.ast.Document;
++import io.github.scms.api.FileRenderer;
++import io.github.scms.api.RenderRequest;
++import io.github.scms.api.Resource;
++
++import java.io.IOException;
++import java.io.Reader;
++
++public class FlexmarkRenderer implements FileRenderer {
++
++  private final Parser parser;
++  private final HtmlRenderer renderer;
++
++  public FlexmarkRenderer(Parser parser, HtmlRenderer renderer) {
++    this.parser = parser;
++    this.renderer = renderer;
++  }
++
++  @Override
++  public boolean supports(String filename) {
++    return filename != null && (filename.endsWith("md") || filename.endsWith("markdown"));
++  }
++
++  @Override
++  public String getInputFileExtension() {
++    return "md";
++  }
++
++  @Override
++  public String getOutputFileExtension() {
++    return "html";
++  }
++
++
++  @Override
++  public void render(RenderRequest request) throws IOException {
++    Resource resource = request.getResource();
++    Reader inputReader = resource.getReader();
++    Document document = parser.parseReader(inputReader);
++    renderer.render(document, request.getWriter());
++  }
++}
+diff --git a/renderer/markdown/src/main/java/io/github/scms/renderer/markdown/MarkdownRendererFactory.java b/renderer/markdown/src/main/java/io/github/scms/renderer/markdown/MarkdownRendererFactory.java
+index 6c5cef0..4c40d91 100644
+--- a/renderer/markdown/src/main/java/io/github/scms/renderer/markdown/MarkdownRendererFactory.java
++++ b/renderer/markdown/src/main/java/io/github/scms/renderer/markdown/MarkdownRendererFactory.java
+@@ -15,11 +15,15 @@
+  */
+ package io.github.scms.renderer.markdown;
+ 
++import com.vladsch.flexmark.ext.gfm.strikethrough.StrikethroughExtension;
++import com.vladsch.flexmark.ext.tables.TablesExtension;
++import com.vladsch.flexmark.html.HtmlRenderer;
++import com.vladsch.flexmark.parser.Parser;
++import com.vladsch.flexmark.util.data.MutableDataSet;
+ import io.github.scms.api.FileRenderer;
+ import io.github.scms.api.FileRendererFactory;
+ import java.io.File;
+-import org.pegdown.Extensions;
+-import org.pegdown.PegDownProcessor;
++import java.util.Arrays;
+ 
+ public class MarkdownRendererFactory implements FileRendererFactory {
+ 
+@@ -35,8 +39,14 @@ public class MarkdownRendererFactory implements FileRendererFactory {
+ 
+   @Override
+   public FileRenderer create() {
+-    PegDownProcessor pegDownProcessor = new PegDownProcessor(Extensions.ALL);
++    MutableDataSet options = new MutableDataSet();
++    options.set(HtmlRenderer.GENERATE_HEADER_ID, true);
++    options.set(HtmlRenderer.RENDER_HEADER_ID, true);
++    options.set(Parser.EXTENSIONS, Arrays.asList(TablesExtension.create(), StrikethroughExtension.create()));
+ 
+-    return new PegdownRenderer(pegDownProcessor);
++    Parser parser = Parser.builder(options).build();
++    HtmlRenderer renderer = HtmlRenderer.builder(options).build();
++
++    return new FlexmarkRenderer(parser, renderer);
+   }
+ }
+diff --git a/renderer/markdown/src/main/java/io/github/scms/renderer/markdown/PegdownRenderer.java b/renderer/markdown/src/main/java/io/github/scms/renderer/markdown/PegdownRenderer.java
+deleted file mode 100644
+index f3dc672..0000000
+--- a/renderer/markdown/src/main/java/io/github/scms/renderer/markdown/PegdownRenderer.java
++++ /dev/null
+@@ -1,143 +0,0 @@
+-/*
+- * Copyright 2021 Les Hazlewood, scms contributors
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- * http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-package io.github.scms.renderer.markdown;
+-
+-import io.github.scms.api.FileRenderer;
+-import io.github.scms.api.RenderRequest;
+-import java.io.BufferedReader;
+-import java.io.BufferedWriter;
+-import java.io.IOException;
+-import java.io.Reader;
+-import java.io.Writer;
+-import java.util.ArrayList;
+-import java.util.LinkedHashMap;
+-import java.util.List;
+-import java.util.Map;
+-import java.util.Scanner;
+-import org.pegdown.PegDownProcessor;
+-
+-public class PegdownRenderer implements FileRenderer {
+-
+-  private static final String METADATA_KV_PAIR_DELIMITER = ":";
+-
+-  private final PegDownProcessor pegDownProcessor;
+-
+-  public PegdownRenderer(PegDownProcessor pegDownProcessor) {
+-    this.pegDownProcessor = pegDownProcessor;
+-  }
+-
+-  @Override
+-  public boolean supports(String filename) {
+-    return filename != null && (filename.endsWith("md") || filename.endsWith("markdown"));
+-  }
+-
+-  @Override
+-  public String getInputFileExtension() {
+-    return "md";
+-  }
+-
+-  @Override
+-  public String getOutputFileExtension() {
+-    return "html";
+-  }
+-
+-  @Override
+-  public void render(RenderRequest request) throws IOException {
+-
+-    Map<String, Object> model = (Map<String, Object>) request.getModel();
+-    if (model == null) {
+-      model = new LinkedHashMap<>();
+-    }
+-
+-    Reader reader = request.getResource().getReader();
+-    BufferedReader breader =
+-        (reader instanceof BufferedReader) ? (BufferedReader) reader : new BufferedReader(reader);
+-
+-    Writer writer = request.getWriter();
+-    BufferedWriter bwriter =
+-        (writer instanceof BufferedWriter) ? (BufferedWriter) writer : new BufferedWriter(writer);
+-
+-    String content = new Scanner(breader).useDelimiter("\\Z").next();
+-    content = stripMetadata(content, model);
+-    content = pegDownProcessor.markdownToHtml(content);
+-
+-    bwriter.write(content);
+-    bwriter.flush();
+-  }
+-
+-  protected String stripMetadata(String markdown, Map<String, Object> model) {
+-    if (model == null) {
+-      throw new IllegalArgumentException("model argument cannot be null.");
+-    }
+-
+-    Scanner scanner = new Scanner(markdown);
+-    int lineCount = 0;
+-    int charCount = 0; // counter for determining where to cut the metadata from non-metadata
+-
+-    String key = null;
+-    List<String> value = new ArrayList<>();
+-
+-    while (scanner.hasNextLine()) {
+-      String line = scanner.nextLine();
+-      lineCount++;
+-      charCount +=
+-          line.length() + 1; // +1 is to account for the newline character that the scanner stripped
+-      line = line.trim();
+-
+-      if (lineCount == 1) {
+-        if (line.equals("") || !line.contains(METADATA_KV_PAIR_DELIMITER)) {
+-          // does not conform to Markdown Metadata expectations:
+-          // - cannot be any blank lines above first line of content
+-          // - first line of content must be a ':' delimited key/value pair
+-          return markdown;
+-        }
+-      } else { // 2nd line or more
+-        if ("".equals(line)) {
+-          // we found the end of metadata - add last key/value pair and stop looping:
+-          applyValue(model, key, value);
+-          break;
+-        }
+-      }
+-
+-      int index = line.indexOf(METADATA_KV_PAIR_DELIMITER);
+-      if (index > 0) {
+-        applyValue(model, key, value);
+-        key = line.substring(0, index).trim();
+-        String valueString = line.substring(index + 1).trim();
+-        value = new ArrayList<>();
+-        value.add(valueString);
+-      } else {
+-        value.add(line);
+-      }
+-    }
+-
+-    if (charCount < markdown.length()) {
+-      return markdown.substring(charCount).trim();
+-    }
+-
+-    return markdown;
+-  }
+-
+-  private void applyValue(Map<String, Object> model, String key, List<String> value) {
+-    if (key != null && value != null && !value.isEmpty()) {
+-      if (value.size() == 1) {
+-        model.put(key, value.get(0));
+-      } else {
+-        model.put(key, value);
+-      }
+-    }
+-  }
+-}
+diff --git a/renderer/markdown/src/test/groovy/io/github/scms/renderer/markdown/PegdownRendererTest.groovy b/renderer/markdown/src/test/groovy/io/github/scms/renderer/markdown/MarkdownRendererTest.groovy
+similarity index 51%
+rename from renderer/markdown/src/test/groovy/io/github/scms/renderer/markdown/PegdownRendererTest.groovy
+rename to renderer/markdown/src/test/groovy/io/github/scms/renderer/markdown/MarkdownRendererTest.groovy
+index 5f5f25c..2440be2 100644
+--- a/renderer/markdown/src/test/groovy/io/github/scms/renderer/markdown/PegdownRendererTest.groovy
++++ b/renderer/markdown/src/test/groovy/io/github/scms/renderer/markdown/MarkdownRendererTest.groovy
+@@ -21,7 +21,7 @@ import io.github.scms.api.DefaultRenderRequest
+ import io.github.scms.api.DefaultResource
+ import org.junit.jupiter.api.Test
+ 
+-class PegdownRendererTest {
++class MarkdownRendererTest {
+ 
+   static final def RENDERER = new MarkdownRendererFactory().create()
+ 
+@@ -41,6 +41,8 @@ class PegdownRendererTest {
+              |--------
+              |
+              |What is Apache Shiro?
++             |
++             |<input type="hidden" id="ghEditPage" value="10-minute-tutorial.md.vtl"></input>
+              '''.stripMargin()
+     def resource = new DefaultResource("10-minute-tutorial", new StringReader(md))
+     def writer = new StringWriter()
+@@ -52,7 +54,44 @@ class PegdownRendererTest {
+     // then
+     def outHtml = writer.getBuffer().toString()
+     assert outHtml.contains('<p>What is Apache Shiro?</p>')
+-    assert outHtml.contains('>Introduction</a></h2>')
++    assert outHtml.contains('>Introduction</h2>')
++  }
++
++  @Test
++  void 'test rendering tables'() {
++    // given
++    def md = '''
++             |Import the Shiro Spring configurations:
++             |
++             |``` java
++             |@Configuration
++             |@Import({ShiroBeanConfiguration.class,
++             |         ShiroConfiguration.class,
++             |         ShiroAnnotationProcessorConfiguration.class})
++             |public class CliAppConfig {
++             |   ...
++             |}
++             |```
++             |
++             |The above configurations do the following:
++             |
++             || Configuration Class | Description |
++             || ------------------- | ----------- |
++             || org.apache.shiro.spring.config.ShiroBeanConfiguration | Configures Shiro's lifecycle and events |
++             || org.apache.shiro.spring.config.ShiroConfiguration | Configures Shiro Beans (SecurityManager, SessionManager, etc)  |
++             || org.apache.shiro.spring.config.ShiroAnnotationProcessorConfiguration | Enables Shiro's annotation processing |
++             |'''.stripMargin()
++    def resource = new DefaultResource("10-minute-tutorial", new StringReader(md))
++    def writer = new StringWriter()
++    def request = new DefaultRenderRequest(emptyMap(), resource, writer)
+ 
++    // when
++    // when
++    RENDERER.render(request)
++
++    // then
++    def outHtml = writer.getBuffer().toString()
++    assert outHtml.contains('<p>The above configurations do the following:</p>')
++    assert outHtml.contains('<td>org.apache.shiro.spring.config.ShiroBeanConfiguration</td>')
+   }
+ }

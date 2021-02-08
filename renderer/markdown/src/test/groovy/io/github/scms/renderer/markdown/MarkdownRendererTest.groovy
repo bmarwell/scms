@@ -21,7 +21,7 @@ import io.github.scms.api.DefaultRenderRequest
 import io.github.scms.api.DefaultResource
 import org.junit.jupiter.api.Test
 
-class PegdownRendererTest {
+class MarkdownRendererTest {
 
   static final def RENDERER = new MarkdownRendererFactory().create()
 
@@ -41,6 +41,8 @@ class PegdownRendererTest {
              |--------
              |
              |What is Apache Shiro?
+             |
+             |<input type="hidden" id="ghEditPage" value="10-minute-tutorial.md.vtl"></input>
              '''.stripMargin()
     def resource = new DefaultResource("10-minute-tutorial", new StringReader(md))
     def writer = new StringWriter()
@@ -52,7 +54,44 @@ class PegdownRendererTest {
     // then
     def outHtml = writer.getBuffer().toString()
     assert outHtml.contains('<p>What is Apache Shiro?</p>')
-    assert outHtml.contains('>Introduction</a></h2>')
+    assert outHtml.contains('>Introduction</h2>')
+  }
 
+  @Test
+  void 'test rendering tables'() {
+    // given
+    def md = '''
+             |Import the Shiro Spring configurations:
+             |
+             |``` java
+             |@Configuration
+             |@Import({ShiroBeanConfiguration.class,
+             |         ShiroConfiguration.class,
+             |         ShiroAnnotationProcessorConfiguration.class})
+             |public class CliAppConfig {
+             |   ...
+             |}
+             |```
+             |
+             |The above configurations do the following:
+             |
+             || Configuration Class | Description |
+             || ------------------- | ----------- |
+             || org.apache.shiro.spring.config.ShiroBeanConfiguration | Configures Shiro's lifecycle and events |
+             || org.apache.shiro.spring.config.ShiroConfiguration | Configures Shiro Beans (SecurityManager, SessionManager, etc)  |
+             || org.apache.shiro.spring.config.ShiroAnnotationProcessorConfiguration | Enables Shiro's annotation processing |
+             |'''.stripMargin()
+    def resource = new DefaultResource("10-minute-tutorial", new StringReader(md))
+    def writer = new StringWriter()
+    def request = new DefaultRenderRequest(emptyMap(), resource, writer)
+
+    // when
+    // when
+    RENDERER.render(request)
+
+    // then
+    def outHtml = writer.getBuffer().toString()
+    assert outHtml.contains('<p>The above configurations do the following:</p>')
+    assert outHtml.contains('<td>org.apache.shiro.spring.config.ShiroBeanConfiguration</td>')
   }
 }
