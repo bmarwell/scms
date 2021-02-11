@@ -76,6 +76,7 @@
     <module>renderer/velocity</module>
     <module>renderer/markdown</module>
     <module>renderer/asciidoc</module>
+    <module>renderer/freemarker</module>
     <module>core</module>
     <module>cli</module>
     <module>dist</module>
@@ -169,6 +170,11 @@
       <dependency>
         <groupId>io.github.scms.renderer</groupId>
         <artifactId>scms-renderer-velocity</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.github.scms.renderer</groupId>
+        <artifactId>scms-renderer-freemarker</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

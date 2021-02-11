@@ -38,6 +38,8 @@
       <groupId>io.github.scms.utils</groupId>
       <artifactId>scms-utils</artifactId>
     </dependency>
+
+    <!-- template rendering engines -->
     <dependency>
       <groupId>io.github.scms.renderer</groupId>
       <artifactId>scms-renderer-velocity</artifactId>
@@ -45,10 +47,16 @@
     </dependency>
     <dependency>
       <groupId>io.github.scms.renderer</groupId>
-      <artifactId>scms-renderer-markdown</artifactId>
+      <artifactId>scms-renderer-freemarker</artifactId>
       <scope>runtime</scope>
     </dependency>
 
+    <!-- markup rendering engines -->
+    <dependency>
+      <groupId>io.github.scms.renderer</groupId>
+      <artifactId>scms-renderer-markdown</artifactId>
+      <scope>runtime</scope>
+    </dependency>
     <dependency>
       <groupId>io.github.scms.renderer</groupId>
       <artifactId>scms-renderer-asciidoc</artifactId>
