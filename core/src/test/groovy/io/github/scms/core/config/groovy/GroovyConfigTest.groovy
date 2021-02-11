@@ -6,7 +6,7 @@ import org.junit.jupiter.api.function.Executable;
 
 class GroovyConfigTest {
 
-  static final def basePath = "/" + GroovyConfigTest.class.packageName.replaceAll("\\.", "/");
+  static final def basePath = "/" + GroovyConfigTest.class.package.name.replaceAll("\\.", "/");
 
   @Test
   void 'test exception on invalid config'() {
