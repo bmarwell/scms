@@ -26,11 +26,11 @@ class DefaultProcessorTest {
     if (this.destDir.exists()) {
       Files.walk(this.destDir.toPath())
           .sorted(Comparator.reverseOrder())
-          .map({it.toFile() } as Function)
-          .forEach({ file.delete } as Function);
+          .forEach({ it -> it.toFile().delete() })
 
       Files.deleteIfExists(this.destDir.toPath());
     }
+
     boolean mkdirs = this.destDir.mkdirs();
     if (!mkdirs) {
       throw new IllegalStateException("Could not initialize tmp dir: " + destDir.getAbsolutePath());
@@ -40,9 +40,11 @@ class DefaultProcessorTest {
   @Test
   void renderFileTest() {
     // given
-    def defaultProcessor = new DefaultProcessor();
+    def defaultProcessor = new DefaultProcessor()
     defaultProcessor.sourceDir = this.sourceDir.absoluteFile
     defaultProcessor.destDir = this.destDir.absoluteFile
+    defaultProcessor.init()
+
     def file = new File(sourceDir, "file.adoc").absoluteFile
 
     // when
