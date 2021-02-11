@@ -17,13 +17,13 @@ package com.leshazlewood.scms.core;
 
 import static java.util.stream.Collectors.joining;
 
-import groovy.util.ConfigObject;
-import groovy.util.ConfigSlurper;
 import io.github.scms.api.*;
+import io.github.scms.core.config.ScmsConfig;
+import io.github.scms.core.config.ScmsFileRenderConfig;
+import io.github.scms.core.config.empty.EmptyConfig;
+import io.github.scms.core.config.groovy.GroovyFileConfig;
 import io.github.scms.utils.FileUtils;
 import java.io.*;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
@@ -38,15 +38,14 @@ public class DefaultProcessor implements Processor {
 
   public static final String DEFAULT_CONFIG_FILE_NAME = ".scms.groovy";
 
-  private final PatternMatcher patternMatcher = new AntPathMatcher();
-
   private final Set<Renderer> renderers = new HashSet<>();
 
   private File sourceDir;
   private File destDir;
   private File configFile;
   private String envName;
-  private Map<String, Object> config = new ConcurrentHashMap<>();
+
+  private ScmsConfig scmsConfig;
 
   @Override
   public void setSourceDir(File sourceDir) {
@@ -108,23 +107,9 @@ public class DefaultProcessor implements Processor {
             "Expected configuration file " + configFile + " is a directory, not a file.");
       }
 
-      ConfigSlurper slurper;
-
-      if (envName != null && !envName.isEmpty()) {
-        slurper = new ConfigSlurper(envName);
-      } else {
-        slurper = new ConfigSlurper();
-      }
-
-      try {
-        URL scriptLocation = configFile.toURI().toURL();
-        ConfigObject cfgobj = slurper.parse(scriptLocation);
-        config.putAll((Map<String, Object>) (cfgobj.get("scms")));
-      } catch (MalformedURLException malformedURLException) {
-        throw new IllegalArgumentException(
-            "configfile not a valid url: [" + configFile.getAbsolutePath() + "].",
-            malformedURLException);
-      }
+      this.scmsConfig = new GroovyFileConfig(configFile, envName);
+    } else {
+      this.scmsConfig = new EmptyConfig();
     }
   }
 
@@ -160,19 +145,7 @@ public class DefaultProcessor implements Processor {
     // now check excluded patterns:
     String relPath = FileUtils.getRelativePath(sourceDir, f);
 
-    if (config.get("excludes") instanceof Collection) {
-      for (Object pattern : (Collection) config.get("excludes")) {
-        if (!(pattern instanceof String)) {
-          LOG.warn("Ignoring exclude [{}], not a string.", pattern);
-          continue;
-        }
-        if (patternMatcher.matches((String) pattern, relPath)) {
-          return false;
-        }
-      }
-    }
-
-    return true;
+    return this.scmsConfig.forFile(relPath).isIncluded();
   }
 
   protected void recurse(File dir) {
@@ -212,61 +185,11 @@ public class DefaultProcessor implements Processor {
     LOG.info("Rendering file [{}].", fileToRender.getPath());
 
     String relPath = FileUtils.getRelativePath(sourceDir, fileToRender);
+    ScmsFileRenderConfig fileConfig = scmsConfig.forFile(relPath);
 
-    Map<String, Object> config = new ConcurrentHashMap<>(this.config);
+    Map<String, Object> model = new ConcurrentHashMap<>(fileConfig.getModel());
 
-    Map<String, Object> model = new LinkedHashMap<>();
-
-    if (config.containsKey("model") && config.get("model") instanceof Map) {
-      model = (Map<String, Object>) config.get("model");
-    } else {
-      config.put("model", model);
-    }
-
-    // path from relPath relative to sourceDir (how to get to the root directory).
-    String relDirPath = FileUtils.relativize(relPath);
-    if ("".equals(relDirPath)) {
-      // still need to reference it with a separator char in the file:
-      relDirPath = ".";
-    }
-
-    model.put("root", relDirPath);
-
-    Map<String, Object> patterns = Collections.emptyMap();
-
-    if (config.containsKey("patterns")) {
-      assert config.get("patterns") instanceof Map : "scms.patterns must be a map";
-      patterns = ((Map<String, Object>) (config.get("patterns")));
-    }
-
-    String action = "render"; // default unless overridden
-
-    for (Map.Entry<String, Object> patternEntry : patterns.entrySet()) {
-
-      String pattern = patternEntry.getKey();
-
-      if (patternMatcher.matches(pattern, relPath)) {
-
-        assert patternEntry.getValue() instanceof Map
-            : "Entry for pattern '" + pattern + "' must be a map.";
-        Map patternConfig = (Map) patternEntry.getValue();
-        config.putAll(patternConfig);
-
-        // pattern-specific model
-        if (patternConfig.get("model") instanceof Map) {
-          model.putAll((Map<? extends String, Object>) patternConfig.get("model"));
-        }
-
-        if (patternConfig.containsKey("render")) {
-          action = (String) patternConfig.get("render");
-        }
-
-        break; // stop pattern iteration - first match always wins
-      }
-    }
-
-    config.put("model", model);
-
+    String action = fileConfig.getAction();
     if (action.equals("skip")) {
       return;
 
@@ -297,8 +220,9 @@ public class DefaultProcessor implements Processor {
               ? ((FileRenderer) renderer).getOutputFileExtension()
               : extension;
 
-      if (config.get("outputFileExtension") != null) {
-        destExtension = (String) config.get("outputFileExtension");
+      Optional<String> outputExtension = fileConfig.getOutputExtension();
+      if (outputExtension.isPresent()) {
+        destExtension = outputExtension.orElseThrow(NoSuchElementException::new);
       }
 
       Renderer nextRenderer = getRenderer(destRelPath);
@@ -312,8 +236,9 @@ public class DefaultProcessor implements Processor {
       renderer = nextRenderer;
     }
 
-    if (config.get("template") != null) { // a template will be used to render the contents
-      String template = (String) config.get("template");
+    if (fileConfig.getTemplate().isPresent()) {
+      // a template will be used to render the contents
+      String template = fileConfig.getTemplate().orElseThrow(NoSuchElementException::new);
       File templateFile = new File(this.sourceDir, template);
       renderer = getRenderer(template);
       if (renderer != null) {
@@ -385,14 +310,6 @@ public class DefaultProcessor implements Processor {
 
   public void setEnvName(String envName) {
     this.envName = envName;
-  }
-
-  public Map getConfig() {
-    return config;
-  }
-
-  public void setConfig(Map config) {
-    this.config = config;
   }
 
   @Override
