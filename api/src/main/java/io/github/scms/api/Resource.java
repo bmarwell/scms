@@ -19,7 +19,17 @@ import java.io.Reader;
 
 public interface Resource {
 
+  /**
+   * File to render, relative to sources dir.
+   *
+   * @return the relative path to the file to render.
+   */
   String getName();
 
+  /**
+   * Reader for the file.
+   *
+   * @return a reader for the file.
+   */
   Reader getReader();
 }
